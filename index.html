@@ -1,0 +1,1454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DHttp — From Partial Connectivity to Omniconnectivity | GOSIM 2026</title>
+<style>
+  :root {
+    --ink: #111827;
+    --ink-2: #374151;
+    --muted: #6b7280;
+    --faint: #9ca3af;
+    --line: #e5e7eb;
+    --accent: #4f46e5;
+    --accent-2: #0d9488;
+    --accent-3: #7c3aed;
+    --bg: #ffffff;
+    --code-bg: #f3f4f6;
+    --dark: #111827;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body { height: 100%; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    overflow: hidden;
+  }
+
+  /* ===== Deck shell ===== */
+  .deck {
+    height: 100vh;
+    position: relative;
+    overflow: hidden;
+  }
+  .track {
+    height: 100%;
+    transition: transform 0.55s cubic-bezier(0.65, 0, 0.35, 1);
+  }
+  .slide {
+    height: 100vh;
+    width: 100%;
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+  }
+  .slide-inner {
+    width: 100%;
+    max-width: 1160px;
+    margin: auto;
+    padding: 3.5rem 4rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  /* ===== Shared typography ===== */
+  .eyebrow {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 3.5px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 1.2rem;
+  }
+  h1, h2.slide-title {
+    font-size: clamp(2.2rem, 4.6vw, 3.4rem);
+    font-weight: 900;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    color: var(--dark);
+    margin-bottom: 1.6rem;
+  }
+  .sub {
+    font-size: clamp(1.1rem, 2vw, 1.45rem);
+    color: var(--muted);
+    line-height: 1.7;
+    font-weight: 500;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  code, pre, .mono { font-family: "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace; }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 1rem 1.2rem;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: var(--ink-2);
+    overflow: auto;
+  }
+  pre .c { color: var(--faint); }
+  pre .k { color: var(--accent-3); font-weight: 700; }
+
+  /* ===== Slide numbering badge ===== */
+  .slide-num {
+    position: absolute;
+    right: 2rem;
+    bottom: 1.4rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--faint);
+  }
+
+  /* ===== Modular content blocks ===== */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 2.5rem; align-items: start; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.4rem; }
+  .grid-3-1 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.4rem; }
+  .grid-2-1 { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 2.5rem; align-items: start; }
+
+  .card {
+    background: #fafafa;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 1.5rem 1.6rem;
+  }
+  .card h4 {
+    font-size: 1.05rem;
+    font-weight: 800;
+    margin-bottom: 0.6rem;
+    color: var(--dark);
+  }
+  .card p { font-size: 0.95rem; line-height: 1.7; color: var(--muted); }
+  .card .num {
+    font-weight: 900;
+    color: var(--accent);
+  }
+  .card.highlight {
+    border-color: var(--accent-2);
+    background: #f0fdfa;
+  }
+
+  ul.clean { list-style: none; }
+  ul.clean li {
+    position: relative;
+    padding-left: 1.5rem;
+    font-size: 1rem;
+    line-height: 1.75;
+    color: var(--ink-2);
+    margin-bottom: 0.55rem;
+  }
+  ul.clean li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.65em;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+  ul.clean li strong { color: var(--dark); }
+
+  .pill {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    padding: 0.25rem 0.7rem;
+    border-radius: 100px;
+    text-transform: uppercase;
+  }
+  .pill.ok { background: #dcfce7; color: #15803d; }
+  .pill.no { background: #fee2e2; color: #b91c1c; }
+  .pill.part { background: #fef9c3; color: #a16207; }
+
+  /* ===== Tag column: Stack layers ===== */
+  .stack { display: flex; flex-direction: column; gap: 0.8rem; }
+  .layer {
+    display: flex;
+    align-items: stretch;
+    gap: 1rem;
+    background: #fafafa;
+    border: 1px solid var(--line);
+    border-left: 5px solid var(--accent);
+    border-radius: 12px;
+    padding: 1rem 1.2rem;
+  }
+  .layer .lname { font-weight: 900; color: var(--dark); min-width: 150px; }
+  .layer .ldesc { font-size: 0.92rem; color: var(--muted); line-height: 1.6; flex: 1; }
+  .layer.teal { border-left-color: var(--accent-2); }
+  .layer.violet { border-left-color: var(--accent-3); }
+
+  /* ===== Comparison table ===== */
+  table.matrix {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+  }
+  table.matrix th, table.matrix td {
+    text-align: left;
+    padding: 0.75rem 0.9rem;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+  table.matrix th {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    font-weight: 800;
+  }
+  table.matrix td.rowhead { font-weight: 700; color: var(--dark); }
+  table.matrix .ok, table.matrix .no, table.matrix .part { font-weight: 800; }
+
+  /* ===== Benchmark placeholders ===== */
+  .bench { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; margin-top: 1.4rem; }
+  .bench-card {
+    border: 1.5px dashed var(--line);
+    border-radius: 14px;
+    padding: 1.3rem;
+    text-align: center;
+  }
+  .bench-card .bt {
+    font-weight: 800;
+    font-size: 0.98rem;
+    color: var(--dark);
+    margin-bottom: 0.4rem;
+  }
+  .bench-card .ph {
+    height: 90px;
+    border-radius: 8px;
+    background: repeating-linear-gradient(
+      45deg, #f6f6f6, #f6f6f6 10px, #fafafa 10px, #fafafa 20px
+    );
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--faint);
+    font-size: 0.85rem;
+  }
+  .note-callout {
+    margin-top: 1.4rem;
+    background: #fef9c3;
+    border-left: 4px solid #eab308;
+    padding: 0.9rem 1.2rem;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    color: #713f12;
+    line-height: 1.6;
+  }
+
+  /* ===== Terminal / command block ===== */
+  .term {
+    background: #0b1220;
+    border-radius: 12px;
+    padding: 1.1rem 1.3rem;
+    font-size: 0.82rem;
+    color: #cbd5e1;
+    line-height: 1.7;
+  }
+  .term .p { color: #22d3ee; }
+  .term .out { color: #94a3b8; }
+
+  /* ===== Footer / brand strip ===== */
+  .foot {
+    margin-top: 2.2rem;
+    padding-top: 1.2rem;
+    border-top: 1px solid var(--line);
+    font-size: 0.85rem;
+    color: var(--faint);
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  /* ===== Title slide ===== */
+  .slide-hero { background: radial-gradient(1200px 600px at 80% -20%, #eef2ff, transparent); }
+  .hero-badge {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 3px;
+    color: var(--muted);
+    margin-bottom: 1.6rem;
+  }
+  .hero-title {
+    font-size: clamp(2.6rem, 6vw, 4.4rem);
+    font-weight: 900;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    color: var(--dark);
+    max-width: 900px;
+  }
+  .hero-title .dim { color: var(--accent); }
+  .hero-sub {
+    margin-top: 1.6rem;
+    font-size: clamp(1.2rem, 2.4vw, 1.7rem);
+    color: var(--muted);
+    font-weight: 500;
+    max-width: 760px;
+    line-height: 1.55;
+  }
+  .hero-meta {
+    margin-top: 2.4rem;
+    display: flex;
+    gap: 2.2rem;
+    font-size: 0.95rem;
+    color: var(--ink-2);
+    flex-wrap: wrap;
+  }
+  .hero-meta strong { color: var(--dark); }
+  .hero-links {
+    margin-top: 2.6rem;
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .btn {
+    display: inline-block;
+    padding: 0.8rem 1.6rem;
+    border-radius: 100px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    border: 2px solid transparent;
+  }
+  .btn.primary { background: var(--dark); color: #fff; }
+  .btn.ghost { border-color: var(--line); color: var(--ink-2); }
+  .code-ref {
+    font-size: 0.8rem;
+    color: var(--faint);
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+  }
+  .code-ref .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-2); }
+
+  /* ===== Big vision slide ===== */
+  .vision-metrics { display: grid; grid-template-columns: repeat(4,1fr); gap: 1.2rem; margin-top: 2rem; }
+  .vmetric { text-align: center; }
+  .vmetric .vm-num { font-size: 2rem; font-weight: 900; color: var(--accent); letter-spacing: -0.02em; }
+  .vmetric .vm-lab { font-size: 0.85rem; color: var(--muted); margin-top: 0.3rem; }
+
+  /* ===== Numbered principle rows ===== */
+  .pr-row { display: flex; gap: 1.2rem; margin-bottom: 1.4rem; align-items: flex-start; }
+  .pr-num {
+    flex-shrink: 0;
+    width: 2.2rem; height: 2.2rem;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    font-weight: 900;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .pr-body h4 { font-size: 1.15rem; font-weight: 800; margin-bottom: 0.25rem; color: var(--dark); }
+  .pr-body p { font-size: 0.98rem; color: var(--muted); line-height: 1.7; }
+
+  /* ===== Diagram boxes (architecture) ===== */
+  .arch-layer {
+    border-radius: 16px;
+    padding: 1.3rem 1.6rem;
+    margin-bottom: 1rem;
+    border: 1px solid var(--line);
+    display: flex;
+    align-items: flex-start;
+    gap: 1.2rem;
+  }
+  .arch-layer .tag { font-weight: 900; color: var(--dark); font-size: 1.05rem; min-width: 180px; }
+  .arch-layer .desc { font-size: 0.95rem; color: var(--muted); line-height: 1.7; flex: 1; }
+  .arch-layer .arrow { font-size: 1.3rem; align-self: center; }
+
+  /* ===== Flow diagram ===== */
+  .flow { display: flex; flex-direction: column; gap: 0.7rem; align-items: stretch; }
+  .flow-eq { display: flex; align-items: center; gap: 1rem; }
+  .flow-eq .mono { font-family: Menlo, monospace; font-size: 1.3rem; font-weight: 700; }
+  .flow-arrow { display: flex; align-items: center; gap: 0.6rem; color: var(--faint); padding-left: 2.4rem; }
+
+  /* ===== Code slide ===== */
+  .code-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.6rem; }
+
+  /* ===== Closing ===== */
+  .closing-qr { display: flex; gap: 2rem; align-items: center; flex-wrap: wrap; margin-top: 1.5rem; }
+  .qr {
+    width: 120px; height: 120px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #fff;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--faint); font-size: 0.7rem; text-align: center;
+  }
+
+  /* ===== Nav dots ===== */
+  .pagination {
+    position: fixed;
+    right: 1.6rem;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    z-index: 50;
+  }
+  .pagination button {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    border: 2px solid #d1d5db;
+    background: transparent;
+    cursor: pointer;
+    padding: 0;
+    transition: all 0.25s;
+  }
+  .pagination button.active { background: var(--dark); border-color: var(--dark); transform: scale(1.3); }
+
+  .hint {
+    position: fixed;
+    bottom: 1.4rem;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.72rem;
+    color: var(--faint);
+    letter-spacing: 2px;
+    z-index: 50;
+  }
+
+  /* ===== Presenter notes overlay (hidden unless toggled) ===== */
+  #notesPanel {
+    position: fixed;
+    right: 1.6rem;
+    bottom: 1.6rem;
+    width: min(560px, 90vw);
+    max-height: 70vh;
+    overflow: auto;
+    background: #0b1220;
+    color: #e2e8f0;
+    border-radius: 14px;
+    padding: 1.4rem 1.6rem;
+    font-size: 0.92rem;
+    line-height: 1.7;
+    z-index: 200;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+    display: none;
+    white-space: pre-wrap;
+  }
+  #notesPanel.open { display: block; }
+  .notes-grab {
+    position: fixed;
+    right: 1.6rem;
+    bottom: 1.6rem;
+    z-index: 190;
+  }
+  .notes-grab button {
+    background: var(--dark);
+    color: #fff;
+    border: none;
+    border-radius: 100px;
+    padding: 0.6rem 1.2rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  /* ===== Architecture diagram: layer stack + numbered pipeline (Slide 10) ===== */
+  .arch-diagram { display: grid; grid-template-columns: 1fr 1fr; gap: 2.5rem; align-items: start; }
+  .arch-diagram .stack { gap: 0.7rem; }
+  .pipeline { display: flex; flex-direction: column; gap: 0.55rem; }
+  .pipeline-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.9rem;
+    background: #fafafa;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 0.8rem 1rem;
+  }
+  .pipeline-step::before {
+    counter-increment: step;
+    content: counter(step);
+    flex-shrink: 0;
+    width: 1.8rem; height: 1.8rem; border-radius: 50%;
+    background: var(--accent); color: #fff;
+    font-weight: 900; font-size: 0.85rem;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .pipeline { counter-reset: step; }
+  .pipeline-step .ps-title { font-weight: 800; color: var(--dark); font-size: 0.98rem; }
+  .pipeline-step .ps-who {
+    font-size: 0.68rem; font-weight: 800; color: var(--accent-2);
+    text-transform: uppercase; letter-spacing: 1px; margin: 0.1rem 0 0.2rem;
+  }
+  .pipeline-step .ps-desc { font-size: 0.84rem; color: var(--muted); line-height: 1.55; }
+
+  /* ===== Name shorthand map (Slide 9) ===== */
+  .name-map {
+    display: flex; align-items: baseline; gap: 0.8rem; flex-wrap: wrap;
+    background: #eef2ff; border: 1px solid #c7d2fe;
+    border-radius: 12px; padding: 0.9rem 1.2rem; margin-top: 1rem;
+  }
+  .name-map .nm-from { font-weight: 900; color: var(--dark); font-size: 1.2rem; }
+  .name-map .nm-arrow { color: var(--accent); font-weight: 800; }
+  .name-map .nm-to { font-family: Menlo, Consolas, monospace; color: var(--accent); font-size: 1.05rem; font-weight: 700; }
+  .name-map .nm-note { font-size: 0.82rem; color: var(--muted); width: 100%; line-height: 1.6; }
+
+  /* ===== Resolution fallback chain (Slide 12) ===== */
+  .resolve-chain { margin-top: 1rem; border-top: 1px dashed var(--line); padding-top: 0.9rem; }
+  .resolve-step { display: flex; align-items: center; gap: 0.7rem; font-size: 0.9rem; color: var(--ink-2); }
+  .resolve-step .rs-badge { font-weight: 800; font-size: 0.68rem; padding: 0.25rem 0.6rem; border-radius: 100px; flex-shrink: 0; }
+  .resolve-step .rs-badge.local { background: #dcfce7; color: #15803d; }
+  .resolve-step .rs-badge.pub { background: #e0e7ff; color: #4338ca; }
+  .res-arrow { color: var(--faint); font-size: 0.75rem; padding: 0.15rem 0; padding-left: 0.3rem; font-weight: 700; }
+
+  /* ===== Security box (Slide 13) ===== */
+  .sec-box {
+    background: #fef2f2; border: 1px solid #fecaca; border-left: 4px solid #dc2626;
+    border-radius: 10px; padding: 0.95rem 1.15rem; margin-top: 1.4rem;
+  }
+  .sec-box .sec-t { font-weight: 800; color: #b91c1c; font-size: 0.9rem; margin-bottom: 0.3rem; }
+  .sec-box p { font-size: 0.88rem; color: #7f1d1d; line-height: 1.65; }
+  .sec-box code { background: #fee2e2; padding: 0 0.25em; border-radius: 4px; }
+
+  /* ===== 3-step testnet (Slide 28) ===== */
+  .testnet { display: flex; flex-direction: column; gap: 0.55rem; margin-top: 0.6rem; }
+  .testnet-step {
+    display: flex; align-items: flex-start; gap: 0.8rem;
+    background: #fafafa; border: 1px solid var(--line); border-radius: 12px; padding: 0.7rem 1rem;
+    font-size: 0.88rem; color: var(--ink-2); line-height: 1.6;
+  }
+  .testnet-step::before {
+    counter-increment: tn;
+    content: counter(tn);
+    flex-shrink: 0;
+    width: 1.6rem; height: 1.6rem; border-radius: 50%;
+    background: var(--accent-2); color: #fff;
+    font-weight: 900; font-size: 0.8rem;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .testnet { counter-reset: tn; }
+  .testnet-step .ts-who { font-weight: 800; color: var(--dark); }
+  .testnet-step code { font-size: 0.8rem; background: #eef2ff; padding: 0 0.3em; border-radius: 4px; }
+
+  @media (max-width: 860px) {
+    body { overflow-y: auto; }
+    .deck { height: auto; }
+    .track { transform: none !important; transition: none; }
+    .slide { height: auto; min-height: 100vh; }
+    .slide-inner { padding: 2rem 1.4rem; }
+    .grid-2, .grid-3, .grid-3-1, .grid-2-1, .code-grid, .arch-diagram { grid-template-columns: 1fr; }
+    .bench { grid-template-columns: 1fr; }
+    .vision-metrics { grid-template-columns: 1fr 1fr; }
+    .pagination { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="deck">
+  <div class="track" id="track">
+
+    <!-- ============ SLIDE 1 : TITLE ============ -->
+    <section class="slide slide-hero">
+      <div class="slide-inner">
+        <span class="hero-badge">GENMETA TECH LIMITED · GOSIM CONFERENCE 2026</span>
+        <h1 class="hero-title">DHttp: From <span class="dim">Partial Connectivity</span> to Omniconnectivity</h1>
+        <p class="hero-sub">Rebuilding HTTP for a peer-to-peer, agentic internet</p>
+        <div class="hero-meta">
+          <span><strong>Presenter:</strong> [Name / Title]</span>
+          <span><strong>License:</strong> Apache-2.0</span>
+          <span><strong>Transport:</strong> core on GitHub</span>
+        </div>
+        <div class="hero-links">
+          <span class="btn primary">A protocol talk, not a product pitch</span>
+          <span class="code-ref"><span class="dot"></span> github.com/genmeta</span>
+        </div>
+      </div>
+      <span class="slide-num">01 / 30</span>
+    </section>
+
+    <!-- ============ SLIDE 2 : EXECUTIVE SUMMARY ============ -->
+    <section class="slide">
+      <div class="slide-inner">
+        <span class="eyebrow">Executive Summary</span>
+        <h2 class="slide-title">HTTP forces every endpoint into "client" or "server" — DHttp removes that distinction.</h2>
+        <div class="grid-3">
+          <div class="card highlight">
+            <h4><span class="num">1 ·</span> DQuic</h4>
+            <p>Rust-native QUIC extension with built-in multipath NAT traversal. No external STUN/TURN cluster required.</p>
+          </div>
+          <div class="card highlight">
+            <h4><span class="num">2 ·</span> DDns / E-Record</h4>
+            <p>A new DNS record type (RTYPE 266) that resolves a name to a full reachability tuple, not just an IP.</p>
+          </div>
+          <div class="card highlight">
+            <h4><span class="num">3 ·</span> DHttp</h4>
+            <p>HTTP/3 extended to use server-initiated bidirectional streams, so any endpoint can push as well as pull.</p>
+          </div>
+        </div>
+        <div class="foot">
+          <span>Edge device → stable name <code>alice.smith~</code> + certificate-backed identity + public HTTPS-style URL</span>
+          <span>ZERO cloud relay in the steady-state data path</span>
+        </div>
+      </div>
+      <span class="slide-num">02 / 30</span>
+    </section>
+
+    <!-- ============ SLIDE 3 : PARADIGM SHIFT ============ -->
+    <section class="slide">
+      <div class="slide-inner">
+        <span class="eyebrow">The Paradigm Shift</span>
+        <h2 class="slide-title">An old problem, repeatedly re-solved badly</h2>
+        <div class="grid-2">
+          <ul class="clean">
+            <li><strong>1994 · RFC 1918:</strong> private IPs + NAT break global routability</li>
+            <li><strong>2000s · VPNs &amp; tunnels:</strong> Tailscale, WireGuard, ngrok — private overlays, still siloed from each other</li>
+            <li><strong>2020s · Agent frameworks:</strong> MCP and A2A's typical production deployment models assume a publicly reachable server, excluding local-first and physical edge tools</li>
+            <li><strong>2020s · Chat-app bridges:</strong> Telegram/WhatsApp bots as ad hoc RPC for laptop agents</li>
+          </ul>
+          <div class="card">
+            <h4>The inflection point</h4>
+            <p>Agentic AI needs <strong>bidirectional, low-latency, cross-network calls to physical endpoints</strong> — robots, home sensors. Point-solutions don't compose.</p>
+          </div>
+        </div>
+      </div>
+      <span class="slide-num">03 / 30</span>
+    </section>
+
+    <!-- ============ SLIDE 4 : MISSION & VISION ============ -->
+    <section class="slide">
+      <div class="slide-inner">
+        <span class="eyebrow">Mission &amp; Vision</span>
+        <h2 class="slide-title">Restore the internet's original design assumption: every endpoint is a peer.</h2>
+        <p class="sub"><strong>Mission:</strong> Make every endpoint independently reachable, nameable, and verifiable — without a platform in the middle.</p>
+        <div class="vision-metrics">
+          <div class="vmetric"><div class="vm-num">A2A</div><div class="vm-lab">agent ↔ agent</div></div>
+          <div class="vmetric"><div class="vm-num">A2D</div><div class="vm-lab">agent ↔ device</div></div>
+          <div class="vmetric"><div class="vm-num">H2H</div><div class="vm-lab">human ↔ human</div></div>
+          <div class="vmetric"><div class="vm-num">1</div><div class="vm-lab">open primitive: name + cert + HTTP</div></div>
+        </div>
+        <div class="foot">
+          <span><strong>Non-goals:</strong> not a lock-in platform · not anonymity · not a VPN replacement</span>
+          <span><em>"We're not building a company on top of the internet. We're patching the internet."</em></span>
+        </div>
+      </div>
+      <span class="slide-num">04 / 30</span>
+    </section>
+
+    <!-- ============ SLIDE 5 : STATUS QUO & BOTTLENECKS ============ -->
+    <section class="slide">
+      <div class="slide-inner">
+        <span class="eyebrow">Status Quo &amp; Bottlenecks</span>
+        <h2 class="slide-title">Routing through a cloud intermediary reintroduces the bottleneck</h2>
+        <div class="grid-2">
+          <ul class="clean">
+            <li><strong><code>connect()</code></strong> — nearly universal</li>
+            <li><strong><code>listen()</code> / <code>accept()</code></strong> — servers only, because it requires global routability</li>
+            <li>Cloud-relay pattern: <code>agent → broker/chat API → device</code></li>
+          </ul>
+          <div class="card highlight">
+            <h4>Concrete costs of the relay pattern</h4>
+            <ul class="clean">
+              <li>Every message round-trips through a third party (latency + $ per request)</li>
+              <li>The relay operator can read, store, or lose your data</li>
+              <li>A robot/camera effectively "phones home" through infrastructure it doesn't control</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <span class="slide-num">05 / 30</span>
+    </section>
+
+    <!-- ============ SLIDE 6 : REAL-WORLD SCENARIOS ============ -->
+    <section class="slide">
+      <div class="slide-inner">
+        <span class="eyebrow">Real-World Scenarios</span>
+        <h2 class="slide-title">The pain shows up as broken demos, VPN tax, and hard ceilings</h2>
+        <div class="grid-3">
+          <div class="card">
+            <h4>A · Demo-sharing problem</h4>
+            <p>Prototype at <code>192.168.1.23:3000</code> is invisible outside the LAN. Fix today: VPN install for every viewer.</p>
+          </div>
+          <div class="card">
+            <h4>B · VPN membership wall</h4>
+            <p>Two colleagues on one VPN connect; a third, not invited, cannot. VPNs don't interconnect with each other.</p>
+          </div>
+          <div class="card">
+            <h4>C · Robot control</h4>
+            <p>An agent wanting to command a robot either needs a rare public endpoint, or routes through a vendor's cloud with a stranger holding write-access to a physical device.</p>
+          </div>
+        </div>
+      </div>
+      <span class="slide-num">06 / 30</span>
+    </section>
+
+    <!-- ============ SLIDE 7 : WHY EXISTING ARCHITECTURES FAIL ============ -->
+    <section class="slide">
+      <div class="slide-inner">
+        <span class="eyebrow">Why Existing Architectures Fail</span>
+        <h2 class="slide-title">The failure is structural, not incidental</h2>
+        <div class="grid-2">
+          <ul class="clean">
+            <li><strong>Root cause:</strong> IPv4 exhaustion → NAT → loss of universal <code>listen()</code> → HTTP inherits the client/server split (RFC 9110 §3.3)</li>
+            <li><strong>VPNs:</strong> fix routing within a boundary, fragment the internet further (N VPNs = N silos)</li>
+            <li><strong>MCP / A2A:</strong> typical production deployment models assume a publicly reachable server, excluding local-first and physical edge tools</li>
+            <li><strong>OAuth/OIDC:</strong> solves delegated login to a platform, not mutual serverless identity between two endpoints</li>
+          </ul>
+          <div class="card">
+            <h4>Common thread</h4>
+            <p>Every fix operates <strong>one layer above the actual break (routing)</strong> — so none of them actually restore global reachability.</p>
+          </div>
+        </div>
+      </div>
+      <span class="slide-num">07 / 30</span>
+    </section>
+
+    <!-- ============ SLIDE 8 : THE OPPORTUNITY ============ -->
+    <section class="slide">
+      <div class="slide-inner">
+        <span class="eyebrow">The Opportunity</span>
+        <h2 class="slide-title">Agentic AI makes fixing the root cause non-optional</h2>
+        <div class="grid-3">
+          <div class="card">
+            <h4>Why now</h4>
+            <p>Agents must (1) talk to other agents, (2) reach local data, (3) command physical actuators — all securely.</p>
+          </div>
+          <div class="card highlight">
+            <h4>Why open source</h4>
+            <p>A relay company becomes the "third party reading everything." The fix has to be <strong>neutral infrastructure</strong>.</p>
+          </div>
+          <div class="card">
+            <h4>Why protocol-first</h4>
+            <p>TCP/IP, DNS, HTTP succeeded as open specs anyone could implement — not because one vendor ran them.</p>
+          </div>
+        </div>
+        <div class="foot">
+          <span>The ask: an IETF/RFC-track protocol + Apache-2.0 reference implementation</span>
+          <span>No single company becomes the new cloud bottleneck</span>
+        </div>
+      </div>
+      <span class="slide-num">08 / 30</span>
+    </section>
+
+    <!-- ============ SLIDE 9 : INTRODUCING DHTTP ============ -->
+    <section class="slide">
+      <div class="slide-inner">
+        <span class="eyebrow">Introducing DHttp</span>
+        <h2 class="slide-title">"HTTP, but every endpoint can also be the server."</h2>
+        <div class="grid-2">
+          <div>
+            <p class="sub">Not a new protocol competing with HTTP — it's HTTP/3 with the client/server role restriction removed, over a QUIC extension that natively handles NAT traversal and identity.</p>
+            <div class="foot" style="margin-top:1.4rem;">
+              <span><strong>Preserves:</strong> HTTP semantics, URL structure, request/response, TLS-grade security</span>
+              <span><strong>Removes:</strong> the requirement that only globally-routable hosts accept connections</span>
+            </div>
+          </div>
+          <div class="stack">
+            <div class="layer violet"><span class="lname">DHttp</span><span class="ldesc">Application — HTTP/3 with server-initiated bidirectional streams</span></div>
+            <div class="layer teal"><span class="lname">DDns / E-Record</span><span class="ldesc">Naming — resolves a name to a full reachability tuple</span></div>
+            <div class="layer"><span class="lname">DQuic</span><span class="ldesc">Transport — P2P QUIC + NAT traversal + multipath</span></div>
+          </div>
+        </div>
+        <div class="name-map">
+          <span class="nm-from">alice.smith~</span>
+          <span class="nm-arrow">≡</span>
+          <span class="nm-to">alice.smith.dhttp.net</span>
+          <span class="nm-note">The trailing <code>~</code> is a root-suffix alias: type the short form in any DHttp-aware client and DNS resolution does the rest. Endpoints that live on the LAN resolve <em>first</em> via <code>._dhttp.local</code> (mDNS) before any public route is consulted.</span>
+        </div>
+      </div>
+      <span class="slide-num">09 / 30</span>
+    </section>
+
+    <!-- ============ SLIDE 10 : HIGH-LEVEL ARCHITECTURE ============ -->
+    <section class="slide">
+      <div class="slide-inner">
+        <span class="eyebrow">High-Level System Architecture</span>
+        <h2 class="slide-title">Three layers, three problems: reach, name, role-symmetry</h2>
+        <div class="arch-diagram">
+          <div>
+            <p class="sub" style="font-size:1rem; margin-bottom:0.8rem;">The stack</p>
+            <div class="stack">
+              <div class="arch-layer"><span class="tag">Application · DHttp</span><span class="desc">HTTP/3 + server-initiated streams, consumed via the <code>dhttp</code> SDK (Rust/Python/JS) or the AnySee browser</span></div>
+              <div class="arch-layer"><span class="tag">Naming · DDns</span><span class="desc">E-Record (RTYPE 266) resolution, self-reported by each endpoint, signed with its own private key</span></div>
+              <div class="arch-layer"><span class="tag">Transport · DQuic</span><span class="desc">QUIC + NAT-traversal extension (<code>ADD_ADDRESS / PUNCH_ME_NOW / REMOVE_ADDRESS</code>) + multipath scheduling</span></div>
+              <div class="arch-layer"><span class="tag">Gateway · Pishoo</span><span class="desc">nginx-config-compatible reverse proxy turning any device into a DHttp server; optionally donates STUN/Relay/Signal capacity back to the network</span></div>
+            </div>
+          </div>
+          <div>
+            <p class="sub" style="font-size:1rem; margin-bottom:0.8rem;">One request, end to end — who does what</p>
+            <div class="pipeline">
+              <div class="pipeline-step"><div><div class="ps-title">Name lookup</div><div class="ps-who">DDns</div><div class="ps-desc">resolve <code>name~</code> → E-Record reachability tuple; mDNS-first on LAN (<code>._dhttp.local</code>)</div></div></div>
+              <div class="pipeline-step"><div><div class="ps-title">Path selection</div><div class="ps-who">DQuic</div><div class="ps-desc">choose among up to 8 concurrent paths — direct &gt; relayed, IPv6 &gt; IPv4</div></div></div>
+              <div class="pipeline-step"><div><div class="ps-title">mTLS handshake</div><div class="ps-who">DQuic</div><div class="ps-desc">Unified Identity verified mutually at connect time</div></div></div>
+              <div class="pipeline-step"><div><div class="ps-title">HTTP/3 request/response</div><div class="ps-who">DHttp</div><div class="ps-desc">server-initiated bidirectional streams — either side can push or pull</div></div></div>
+              <div class="pipeline-step"><div><div class="ps-title">Pishoo ACL evaluation</div><div class="ps-who">Pishoo</div><div class="ps-desc">deny-by-default rules on identity + path + method</div></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <span class="slide-num">10 / 30</span>
+    </section>
+
+    <!-- ============ SLIDE 11 : DQUIC ============ -->
+    <section class="slide">
+      <div class="slide-inner">
+        <span class="eyebrow">Core Technology 1 · DQuic (P2P Transport)</span>
+        <h2 class="slide-title">STUN, Relay, and Signal folded into the QUIC packet itself</h2>
+        <div class="grid-2">
+          <ul class="clean">
+            <li><strong>ep / &amp;EP model:</strong> private <code>ep</code> pairs with a public delegate <code>&amp;EP</code>; packets to <code>&amp;EP</code> forward to <code>ep</code></li>
+            <li><strong>Any public node</strong> with full-cone NAT can be an <code>&amp;EP</code> — community-contributed, DePIN-style</li>
+            <li><strong>Traversal inside the connection:</strong> <code>ADD_ADDRESS</code>, <code>PUNCH_ME_NOW</code>, <code>REMOVE_ADDRESS</code></li>
+          </ul>
+          <div class="card highlight">
+            <h4>Multipath — up to 8 concurrent paths</h4>
+            <p>One logical connection runs over cellular IPv4, WiFi IPv4, cellular IPv6, WiFi IPv6.</p>
+            <ul class="clean" style="margin-top:0.8rem;">
+              <li><strong>Priority:</strong> direct &gt; relayed · LAN &gt; WAN · WiFi &gt; cellular · IPv6 &gt; IPv4</li>
+              <li><strong>vs Happy Eyeballs:</strong> negotiates all paths under one connection ID — no wasted handshake, no discarding a slower-but-preferred IPv6 path</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <span class="slide-num">11 / 30</span>
+    </section>
+
+    <!-- ============ SLIDE 12 : DDN S E-RECORD ============ -->
+    <section class="slide">
+      <div class="slide-inner">
+        <span class="eyebrow">Core Technology 2 · DDns / E-Record</span>
+        <h2 class="slide-title">Naming rights for every device, not just servers</h2>
+        <div class="grid-2">
+          <div>
+            <p class="sub"><strong>E-Record (RTYPE 266):</strong> <code>rtype(266) | flags(8 bits) | rdata</code></p>
+            <div class="grid-3-1" style="margin-top:1.2rem;">
+              <div class="pill ok">bit 1 · addr family</div>
+              <div class="pill ok">bit 2 · primary/backup</div>
+              <div class="pill ok">bit 3 · single/cluster</div>
+              <div class="pill ok">bit 4 · NAT + &amp;EP</div>
+              <div class="pill ok">bit 5 · load info</div>
+              <div class="pill ok">bit 8 · signed</div>
+            </div>
+          </div>
+          <div class="card">
+            <h4>Self-reporting, self-signed</h4>
+            <ul class="clean">
+              <li>Endpoint detects its reachable address and republishes its own signed E-Record — no DNS console, no ops, no spoofing (bit 8)</li>
+              <li>Namespace: <code>.dhttp.net</code> (shorthand <code>~</code>) — sub-zones <code>.home~</code>, <code>.robot~</code>, <code>.svc~</code>, <code>.car~</code></li>
+            </ul>
+            <div class="resolve-chain">
+              <div class="resolve-step"><span class="rs-badge local">mDNS first</span><span>same-LAN: <code>._dhttp.local</code> — zero added latency, zero public traffic</span></div>
+              <div class="res-arrow">▼ fallback when unreachable locally</div>
+              <div class="resolve-step"><span class="rs-badge pub">DDns public</span><span>cross-network: <code>name.dhttp.net</code> E-Record → full reachability tuple</span></div>
+              <div class="res-arrow">▼ only if no local hit</div>
+              <div class="resolve-step"><span class="rs-badge pub">P2P connect</span><span>DQuic NAT traversal toward the chosen path</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <span class="slide-num">12 / 30</span>
+    </section>
+
+    <!-- ============ SLIDE 13 : UNIFIED IDENTITY ============ -->
+    <section class="slide">
+      <div class="slide-inner">
+        <span class="eyebrow">Core Technology 3 · Unified Identity &amp; Access Control</span>
+        <h2 class="slide-title">One artifact — name + keypair + certificate</h2>
+        <div class="grid-2">
+          <div>
+            <p class="sub"><strong>Unified Identity =</strong> name + public/private keypair + certificate, verified via <strong>mutual TLS</strong> at connection time.</p>
+            <div class="foot" style="margin-top:1.4rem;">
+              <span>Legacy: IP (not verifiable) · password (not callable) · token (not signable) · OIDC (login, not device identity)</span>
+            </div>
+          </div>
+          <div class="card">
+            <h4>Deny-by-default ACLs, keyed to identity, not IP</h4>
+            <ul class="clean">
+              <li>Default: no external access unless allowed</li>
+              <li>Default: local (<code>dhttp.local</code>) allowed · self-access allowed</li>
+              <li><strong>Imprinting:</strong> first-ever visitor becomes the administrator — <em>only on a verified bootstrap channel</em></li>
+              <li>Admin extends allow-list to specific names or "anyone"</li>
+              <li><code>Authorization</code> header repurposed for third-party-issued, signed, time-bounded credentials (<code>Secretary</code>, <code>Student</code>, <code>Citizen</code>)</li>
+            </ul>
+          </div>
+        </div>
+        <div class="sec-box">
+          <div class="sec-t">Safe-by-bootstrap: imprinting never happens blind</div>
+          <p><strong>Imprinting is only accepted over a channel already proven to be the operator's, not an attacker's.</strong> The three eligible bootstrap contexts: physical proximity (out-of-band QR / NFC pairing), same-LAN local context (<code>._dhttp.local</code> via mDNS), or out-of-band identity verification (comparing a printed/displayed public-key fingerprint). A random first-contact <em>from the open internet</em> is <strong>never</strong> auto-promoted to administrator — this blocks MITM "first-contact takeover" in untrusted / coffee-shop networks.</p>
+        </div>
+      </div>
+      <span class="slide-num">13 / 30</span>
+    </section>
+
+    <!-- ============ SLIDE 14 : CODE / SPECS SHOWCASE ============ -->
+    <section class="slide">
+      <div class="slide-inner">
+        <span class="eyebrow">Code / Specs Showcase</span>
+        <h2 class="slide-title">Five lines of Rust, no STUN/TURN/relay config</h2>
+        <div class="code-grid">
+          <div>
+            <p class="sub" style="font-size:1rem;">Client</p>
+<pre><span class="c">// load your identity, hit a name</span>
+<span class="k">let</span> mut endpoint = Endpoint::<span class="k">load</span>(<span class="c">"alice.smith"</span>).await?;
+<span class="k">let</span> mut response = endpoint
+    .get(<span class="c">"https://bob.lee~/welcome"</span>).await?;
+<span class="k">assert_eq!</span>(response.status(),
+    http::StatusCode::OK);</pre>
+          </div>
+          <div>
+            <p class="sub" style="font-size:1rem;">Server</p>
+<pre><span class="k">let</span> mut endpoint = Endpoint::<span class="k">new</span>(<span class="c">"bob.lee"</span>);
+endpoint.listen([
+    Service::get(<span class="c">"/welcome"</span>, <span class="k">async</span> |request, response| {
+        response.status(http::StatusCode::OK)
+                .body(&b<span class="c">"Hello, World!"</span>[..]);
+    })
+]).await?;</pre>
+          </div>
+        </div>
+        <div class="foot">
+          <span><code>genmeta nslookup bob.lee~</code> → reachability tuple</span>
+          <span>Pishoo config mirrors nginx (<code>location</code>, <code>proxy_pass</code>, <code>listen all;</code>)</span>
+          <span>SDKs: Rust (native) · Python/JS planned</span>
+        </div>
+      </div>
+      <span class="slide-num">14 / 30</span>
+    </section>
+
+    <!-- ============ SLIDE 15 : ARCHITECTURAL COMPARISON ============ -->
+    <section class="slide">
+      <div class="slide-inner">
+        <span class="eyebrow">Architectural Comparison</span>
+        <h2 class="slide-title">DHttp is the only approach restoring universal reachability — no new boundary, no new third party</h2>
+        <table class="matrix">
+          <thead>
+            <tr><th>Capability</th><th>VPN</th><th>Cloud Relay</th><th>DHttp</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="rowhead">Cross-network reachability w/o new network</td><td class="no">✗</td><td class="part">✓ via 3rd party</td><td class="ok">✓</td></tr>
+            <tr><td class="rowhead">No 3rd party in steady-state path</td><td class="ok">✓</td><td class="no">✗</td><td class="ok">✓</td></tr>
+            <tr><td class="rowhead">Works for devices w/o public IP</td><td class="part">✓ (Private silo only)</td><td class="ok">✓ (Requires third-party trust &amp; per-request cost)</td><td class="ok">✓ (Native &amp; Peer-to-Peer)</td></tr>
+            <tr><td class="rowhead">Identity model</td><td>IP/device cert</td><td>platform account/API key</td><td>Unified Identity (mTLS)</td></tr>
+            <tr><td class="rowhead">Interconnects across deployments</td><td class="no">✗</td><td class="no">✗ (siloed)</td><td class="ok">✓ one global namespace</td></tr>
+            <tr><td class="rowhead">Operating layer</td><td>network</td><td>application/platform</td><td>application (HTTP-native)</td></tr>
+            <tr><td class="rowhead">Access-control granularity</td><td>IP/port/protocol</td><td>platform-defined</td><td>name + path + method</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <span class="slide-num">15 / 30</span>
+    </section>
+
+    <!-- ============ SLIDE 16 : PERFORMANCE BENCHMARKS ============ -->
+    <section class="slide">
+      <div class="slide-inner">
+        <span class="eyebrow">Performance Benchmarks</span>
+        <h2 class="slide-title">Lower P50/P99 latency and setup time vs relay &amp; Happy Eyeballs</h2>
+        <div class="bench">
+          <div class="bench-card"><div class="bt">Connection establishment</div><div class="ph">Chart · DHttp direct P2P vs VPN vs cloud relay (ms)</div></div>
+          <div class="bench-card"><div class="bt">Steady-state latency P50/P95/P99</div><div class="ph">Chart · same three approaches (ms)</div></div>
+          <div class="bench-card"><div class="bt">Multipath throughput (WiFi+cellular)</div><div class="ph">Chart · vs single-path QUIC (Mbps over time)</div></div>
+          <div class="bench-card"><div class="bt">Pishoo gateway memory footprint</div><div class="ph">Chart · idle &amp; under N connections (MB)</div></div>
+        </div>
+        <div class="note-callout">
+          <strong>Presenter:</strong> Replace all four placeholders with your own measured numbers before presenting. If benchmarks aren't finalized, present this as "benchmark methodology" instead of results. The harness ships in the repo.
+        </div>
+      </div>
+      <span class="slide-num">16 / 30</span>
+    </section>
+
+    <!-- ============ SLIDE 17 : SCALABILITY & RELIABILITY ============ -->
+    <section class="slide">
+      <div class="slide-inner">
+        <span class="eyebrow">Scalability &amp; Reliability</span>
+        <h2 class="slide-title">Reliability comes from path diversity, not a bigger cluster</h2>
+        <div class="grid-2">
+          <ul class="clean">
+            <li><strong>Failure modes:</strong> single-path drop with auto-failover; delegate <code>&amp;EP</code> going offline mid-session; DNS/DDns propagation during mobile handoff</li>
+            <li><strong>Delegate availability:</strong> DHT-based tracking of candidate <code>&amp;EP</code> nodes; register with several delegates simultaneously for redundancy</li>
+          </ul>
+          <div class="card">
+            <h4>Load-shedding (Pishoo <code>forward</code>)</h4>
+            <p>Any node caps donated relay/STUN/Signal capacity: <code>off / light / medium / large / xlarge / xxlarge / auto / unlimited</code>.</p>
+            <p style="margin-top:0.7rem;"><strong>No single point of failure</strong> — by design, vs a centralized relay cluster (single organizational point of failure even if technically redundant).</p>
+          </div>
+        </div>
+      </div>
+      <span class="slide-num">17 / 30</span>
+    </section>
+
+    <!-- ============ SLIDE 18 : REFERENCE CASE STUDIES (EDGE ROBOTICS + DEVELOPER SHARING) ============ -->
+    <section class="slide">
+      <div class="slide-inner">
+        <span class="eyebrow">Reference Case Studies</span>
+        <h2 class="slide-title">Two scales, one mechanism: a robot and a live demo</h2>
+        <div class="grid-2">
+          <div>
+            <p class="sub" style="font-size:0.8rem;">Case 1 · Edge / Robotics</p>
+            <p style="font-weight:700;color:var(--dark);margin:0.25rem 0 0.9rem;">Commanding a robot directly, zero cloud relay</p>
+            <div class="flow">
+              <div class="flow-eq"><span class="mono">alice.smith</span><span>owner</span></div>
+              <div class="flow-arrow">→ <code>/chat</code> · allow "alice.smith"</div>
+              <div class="flow-eq"><span class="mono">alice.bot</span><span>personal agent</span></div>
+              <div class="flow-arrow">→ <code>POST /task/clean</code> · allow "alice.bot"</div>
+              <div class="flow-eq"><span class="mono">walle.robot</span><span>home robot</span></div>
+            </div>
+            <div class="foot" style="margin-top:0.9rem;">
+              <span>Each arrow is one real <code>genmeta access</code> rule — e.g. <code>genmeta access "/task/clean" allow "alice.bot"</code>. <code>walle.robot</code> runs Pishoo on its own onboard compute, so there is no separate gateway server.</span>
+            </div>
+          </div>
+          <div>
+            <p class="sub" style="font-size:0.8rem;">Case 2 · Developer Sharing</p>
+            <p style="font-weight:700;color:var(--dark);margin:0.25rem 0 0.9rem;">Share a live prototype with scoped access</p>
+            <ul class="clean">
+              <li><strong>Old flow:</strong> VPN install + join per viewer; VPNs don't interconnect → Bob and James still can't reach each other</li>
+              <li><strong>New flow:</strong> two ACL lines, two ordinary HTTPS URLs</li>
+            </ul>
+            <div class="card" style="margin-top:0.8rem;">
+              <h4>ACL config (real CLI)</h4>
+<pre><span class="c"># genmeta access — two lines, two viewers</span>
+genmeta access "/demo-a" allow "bob.lee~"
+genmeta access "/demo-b" allow "james.wilson~"</pre>
+              <p style="margin-top:0.6rem;"><strong>Per-viewer cost:</strong> "install + configure a VPN client" → "one ACL line."</p>
+            </div>
+          </div>
+        </div>
+        <div class="card highlight" style="margin-top:1rem;">
+          <h4>Security property — shared by both cases</h4>
+          <ul class="clean">
+            <li>No vendor cloud ever gets write-access — not to <code>walle.robot</code>, not to Alice's demo</li>
+            <li>Only the authorized identities: no OAuth redirect · no API-key provisioning · no dashboard token copy</li>
+          </ul>
+        </div>
+      </div>
+      <span class="slide-num">18 / 30</span>
+    </section>
+
+    <!-- ============ SLIDE 19 : SECURITY PROPERTIES & THREAT MODEL ============ -->
+    <section class="slide">
+      <div class="slide-inner">
+        <span class="eyebrow">Security Properties &amp; Threat Model</span>
+        <h2 class="slide-title">Keys stay on-device, grants stay explicit, clouds stay optional</h2>
+        <div class="grid-2">
+          <div class="card">
+            <h4>Security properties</h4>
+            <ul class="clean">
+              <li><strong>Identity = keypair.</strong> Unified Identity = name + key + mutual-TLS cert; possession is authority, with nothing central to steal or subpoena</li>
+              <li><strong>Deny-by-default.</strong> Every grant is an explicit, path-scoped <code>genmeta access</code> rule</li>
+              <li><strong>Safe-by-bootstrap.</strong> Imprinting only via physical proximity, same-LAN mDNS, or out-of-band fingerprint check — never from a random internet first-contact</li>
+              <li><strong>Confidential &amp; authenticated.</strong> QUIC + TLS 1.3 mutual auth end-to-end; relays and delegate nodes see ciphertext only</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h4>Threat model</h4>
+            <ul class="clean">
+              <li><strong>Vendor/cloud breach:</strong> moot by design — no vendor holds write credentials to your devices</li>
+              <li><strong>E-Record / DDns poisoning:</strong> a name is an address, not a credential; sessions pin the peer certificate</li>
+              <li><strong>Rogue relay / delegate:</strong> a dumb forwarder cannot mint identities or read plaintext</li>
+              <li><strong>Dashboard/token leak:</strong> n/a — there is no central dashboard to leak</li>
+              <li><strong>Physical device theft:</strong> keys live on-device; optional passphrase or HSM protection</li>
+            </ul>
+          </div>
+        </div>
+        <div class="foot" style="margin-top:1.1rem;">
+          <span><strong>Assumption:</strong> the authorized owner is trusted; the attacker model is any <em>other</em> network party — an ISP, a CGNAT middlebox, or a rogue internet peer.</span>
+        </div>
+      </div>
+      <span class="slide-num">19 / 30</span>
+    </section>
+
+    <!-- ============ SLIDE 20 : LIVE DEMO WALKTHROUGH ============ -->
+    <section class="slide">
+      <div class="slide-inner">
+        <span class="eyebrow">Live Demo Walkthrough</span>
+        <h2 class="slide-title">From clone to two-way HTTP/3 in five commands</h2>
+        <div class="term">
+          <span class="p">$</span> git clone https://github.com/genmeta/dquic &amp;&amp; cd dquic<br>
+          <span class="p">[server] $</span> cargo run --example h3-server --package h3-shim -- --dir ./h3-shim<br>
+          <span class="p">[client, other net] $</span> cargo run --example h3-client --package h3-shim -- https://&lt;name&gt;/examples/h3-server.rs<br>
+          <span class="p">$</span> genmeta identity create   <span class="out"># local keypair + cert, no central account</span><br>
+          <span class="p">$</span> genmeta access "/shell" allow "your.friend"   <span class="out"># one-line ACL grant</span>
+        </div>
+        <div class="note-callout">
+          <strong>Presenter risk note:</strong> conference WiFi often blocks UDP/QUIC. Have a pre-recorded fallback video of the same five steps cued up.
+        </div>
+      </div>
+      <span class="slide-num">20 / 30</span>
+    </section>
+
+    <!-- ============ SLIDE 21 : WHY OPEN SOURCE ============ -->
+    <section class="slide">
+      <div class="slide-inner">
+        <span class="eyebrow">Open Source Strategy</span>
+        <h2 class="slide-title">Neutral infrastructure can't be owned by one vendor</h2>
+        <div class="grid-2">
+          <ul class="clean">
+            <li><strong>Licensing:</strong> Apache-2.0 across DQuic, DDns ref implementation, SDKs — permissive, patent grant included</li>
+            <li><strong>Governance:</strong> submit DQuic NAT-traversal + E-Record through IETF draft → RFC, the same path QUIC took</li>
+            <li><strong>Commitment:</strong> no feature affecting interoperability (identity, ACL semantics, wire format) will be held back for a paid tier</li>
+          </ul>
+          <div class="card">
+            <h4>Open-core boundary (stated plainly)</h4>
+            <p>Protocol, transport, naming, and reference gateway (Pishoo core) are <strong>fully open</strong>. Commercial offerings are optional managed conveniences layered on top — not gated protocol features.</p>
+          </div>
+        </div>
+      </div>
+      <span class="slide-num">21 / 30</span>
+    </section>
+
+    <!-- ============ SLIDE 22 : ECOSYSTEM COMPATIBILITY ============ -->
+    <section class="slide">
+      <div class="slide-inner">
+        <span class="eyebrow">Ecosystem Compatibility</span>
+        <h2 class="slide-title">Sits underneath existing frameworks — doesn't replace them</h2>
+        <div class="grid-2">
+          <ul class="clean">
+            <li><strong>MCP servers:</strong> run behind Pishoo instead of requiring a public-IP host; tool discovery unchanged</li>
+            <li><strong>A2A / LangChain-style:</strong> agent identity → Unified Identity; inter-agent calls become direct DHttp requests</li>
+            <li><strong>ROS2 / robotics:</strong> DHttp as a WAN bridge for LAN-only ROS2 topics, reusing E-Record naming</li>
+            <li><strong>AnySee browser:</strong> drop-in DHttp-aware client; falls back to normal HTTP for non-<code>.dhttp.net</code> names</li>
+          </ul>
+          <div class="card">
+            <h4>Compatibility posture</h4>
+            <p>No rewrite of application logic required — only the connection/listener layer changes, since HTTP semantics are preserved.</p>
+          </div>
+        </div>
+      </div>
+      <span class="slide-num">22 / 30</span>
+    </section>
+
+    <!-- ============ SLIDE 23 : DX ============ -->
+    <section class="slide">
+      <div class="slide-inner">
+        <span class="eyebrow">Developer Experience</span>
+        <h2 class="slide-title">Zero-to-served in under five minutes</h2>
+        <div class="grid-2">
+          <div>
+            <p class="sub" style="font-size:1rem;">Quickstart</p>
+<pre><span class="c"># 1</span> sudo apt install pishoo gmutils
+<span class="c"># 2</span> genmeta identity create      <span class="c"># local keypair + cert</span>
+<span class="c"># 3</span> genmeta access "/path" allow "friend.name"
+<span class="c"># 4</span> sudo systemctl start pishoo</pre>
+          </div>
+          <div class="card">
+            <h4>Familiar tooling, no new mental model</h4>
+            <ul class="clean">
+              <li><code>genmeta nslookup &lt;name&gt;</code> — mirrors standard <code>nslookup</code></li>
+              <li><code>genmeta-curl</code> — curl-compatible DHttp client</li>
+              <li><code>genmeta-proxy</code> — forward proxy for DHttp domains</li>
+              <li>Pishoo config mirrors nginx (<code>server{}</code>, <code>location{}</code>, <code>proxy_pass</code>)</li>
+              <li>SDK targets: Rust native · Python &amp; JS/TS bindings</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <span class="slide-num">23 / 30</span>
+    </section>
+
+    <!-- ============ SLIDE 24 : GOVERNANCE ============ -->
+    <section class="slide">
+      <div class="slide-inner">
+        <span class="eyebrow">Community Governance</span>
+        <h2 class="slide-title">Public RFC-style review before protocol changes land</h2>
+        <div class="grid-2">
+          <ul class="clean">
+            <li><strong>RFC process:</strong> wire-format / flag-semantics / header-semantics changes require a public design doc + review period before merge</li>
+            <li><strong>Security review:</strong> identity-verification &amp; ACL default-deny changes get mandatory external review</li>
+          </ul>
+          <div class="card">
+            <h4>SIG structure by component</h4>
+            <ul class="clean">
+              <li><strong>DQuic</strong> — transport / NAT traversal</li>
+              <li><strong>DDns</strong> — naming / DNS interop</li>
+              <li><strong>Pishoo</strong> — gateway / ops</li>
+              <li><strong>SDKs</strong> — Rust / Python / JS bindings</li>
+            </ul>
+            <p style="margin-top:0.8rem;"><strong>Neutral custody:</strong> intent to move spec repos toward foundation-style or multi-maintainer governance as the community grows.</p>
+          </div>
+        </div>
+      </div>
+      <span class="slide-num">24 / 30</span>
+    </section>
+
+    <!-- ============ SLIDE 25 : ROADMAP ============ -->
+    <section class="slide">
+      <div class="slide-inner">
+        <span class="eyebrow">Open Source Roadmap · Next 12 Months</span>
+        <h2 class="slide-title">Hardening and standards before ecosystem breadth</h2>
+        <div class="grid-2">
+          <ul class="clean">
+            <li><strong>Q1:</strong> DQuic 1.0 stabilization — finalize NAT-traversal frames; publish first public benchmark suite (addresses the Slide 16 placeholder honestly)</li>
+            <li><strong>Q2:</strong> E-Record IETF draft submission; DDns resolver hardening; mDNS interop testing across router/OS combos</li>
+          </ul>
+          <ul class="clean">
+            <li><strong>Q3:</strong> Python &amp; JS/TS SDK GA; first native MCP-over-DHttp integration; ROS2 bridge PoC</li>
+            <li><strong>Q4:</strong> Pishoo 1.0 + <code>forward</code> capacity accounting; SIG structure stood up; external security audit of Unified Identity + ACL default-deny</li>
+            <li><strong>Ongoing:</strong> ecosystem plugin bounties; IETF working-group engagement</li>
+          </ul>
+        </div>
+      </div>
+      <span class="slide-num">25 / 30</span>
+    </section>
+
+    <!-- ============ SLIDE 26 : SUSTAINABILITY ============ -->
+    <section class="slide">
+      <div class="slide-inner">
+        <span class="eyebrow">Sustainability &amp; Enterprise</span>
+        <h2 class="slide-title">Funded by managed convenience — never by gating interoperability</h2>
+        <div class="grid-3">
+          <div class="card">
+            <h4>Managed Cloud Hub</h4>
+            <p>Hosted, high-availability delegate (<code>&amp;EP</code>) nodes for teams wanting guaranteed uptime beyond best-effort community delegates.</p>
+          </div>
+          <div class="card">
+            <h4>Managed identity/CA</h4>
+            <p>Enterprise fleet management for device identities — rotation, revocation, audit trail at scale.</p>
+          </div>
+          <div class="card highlight">
+            <h4>Premium / reserved names</h4>
+            <p><code>genmeta identity create</code> flags that valuable names trigger a paid response — a namespace-scarcity model, not a protocol-access paywall.</p>
+          </div>
+        </div>
+        <div class="foot">
+          <span><strong>DePIN loop:</strong> nodes donating relay/STUN/Signal capacity (Pishoo <code>forward</code>) accrue usage-based credits, redeemable against managed services.</span>
+        </div>
+      </div>
+      <span class="slide-num">26 / 30</span>
+    </section>
+
+    <!-- ============ SLIDE 27 : TEAM ============ -->
+    <section class="slide">
+      <div class="slide-inner">
+        <span class="eyebrow">Team &amp; Contributors</span>
+        <h2 class="slide-title">Expertise where a protocol lives or dies</h2>
+        <div class="grid-2">
+          <ul class="clean">
+            <li><strong>Founder / Tech Lead</strong> — [transport protocols / distributed systems background]</li>
+            <li><strong>Core DQuic maintainer(s)</strong> — Rust / QUIC internals</li>
+            <li><strong>Security lead</strong> — applied cryptography / PKI</li>
+            <li><strong>Community / DevRel lead</strong> — open-source community building</li>
+          </ul>
+          <div class="card">
+            <h4>Credibility for this audience</h4>
+            <ul class="clean">
+              <li>Shoutout to early external contributors/testers</li>
+              <li>Any IETF / QUIC-community advisors — carries real credibility here</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <span class="slide-num">27 / 30</span>
+    </section>
+
+    <!-- ============ SLIDE 28 : CTA DEVELOPERS ============ -->
+    <section class="slide">
+      <div class="slide-inner">
+        <span class="eyebrow">Call to Action · Developers</span>
+        <h2 class="slide-title">A protocol invite, not a product pitch: replicate it on your own laptop</h2>
+        <div class="grid-2">
+          <div>
+            <p class="sub" style="font-size:1rem; margin-bottom:0.6rem;">3-step local testnet — no cloud, no accounts, no router config</p>
+            <div class="testnet">
+              <div class="testnet-step"><span class="ts-who">Step 1 — Boot two DQuic peers.</span><span>on your LAN (or one LAN + a hotspot), run the h3-server &amp; h3-client examples from <code>github.com/genmeta/dquic</code></span></div>
+              <div class="testnet-step"><span class="ts-who">Step 2 — Give each a name.</span><span><code>genmeta identity create</code> → local keypair + cert; peer resolves the other via <code>._dhttp.local</code> (mDNS) — no DDns needed yet</span></div>
+              <div class="testnet-step"><span class="ts-who">Step 3 — Cross-network call.</span><span>point <code>genmeta-curl</code> (or the SDK) at <code>https://name~/path</code> from a second network; watch E-Record resolution + DQuic NAT traversal kick in</span></div>
+            </div>
+          </div>
+          <div class="card">
+            <h4>How to contribute to the <code>dhttp</code> SDK + issue trackers</h4>
+            <ul class="clean">
+              <li><strong>Primary repo:</strong> <code>github.com/genmeta/dquic</code> (transport core, Apache-2.0)</li>
+              <li><strong>Related:</strong> DDns resolver · Pishoo gateway · SDK repos (Rust, <em>then</em> Python/JS bindings)</li>
+              <li>Pick up a <strong>"good first issue"</strong> label per SIG: transport · naming · gateway · SDK bindings</li>
+              <li>Report rough edges from the testnet above as <strong>friction-log issues</strong> — honest teardown feedback is the most valuable contribution we can get</li>
+              <li>Test mDNS interop on an under-tested router/OS combination</li>
+            </ul>
+            <p style="margin-top:0.8rem;"><strong>Channel:</strong> GitHub Discussions / Issues (primary) — <code>github.com/genmeta</code></p>
+          </div>
+        </div>
+      </div>
+      <span class="slide-num">28 / 30</span>
+    </section>
+
+    <!-- ============ SLIDE 29 : CTA PARTNERS ============ -->
+    <section class="slide">
+      <div class="slide-inner">
+        <span class="eyebrow">Call to Action · Partners</span>
+        <h2 class="slide-title">Two kinds of partners: ecosystem + academic/standards</h2>
+        <p class="sub" style="font-size:1.1rem; margin-bottom:1.4rem;">We are inviting collaborators on an <strong>open protocol</strong> (IETF-track, Apache-2.0) — not resellers for a platform. Standards work is the deliverable.</p>
+        <div class="grid-2">
+          <div class="card">
+            <h4>Ecosystem partners</h4>
+            <ul class="clean">
+              <li>Agent-orchestration frameworks (MCP / A2A)</li>
+              <li>Robotics middleware (ROS2 and adjacent)</li>
+              <li>Edge / DePIN infrastructure with overlapping delegate-node incentive models</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h4>Academic / standards partners</h4>
+            <ul class="clean">
+              <li>Co-authors / reviewers for the E-Record and DQuic NAT-traversal IETF drafts</li>
+              <li>University networking/security labs for independent analysis ahead of the external audit</li>
+            </ul>
+            <p style="margin-top:0.8rem;">Offers: joint integration engineering · co-presentation · early access to Managed Cloud Hub for pilots</p>
+          </div>
+        </div>
+      </div>
+      <span class="slide-num">29 / 30</span>
+    </section>
+
+    <!-- ============ SLIDE 30 : CONCLUSION & Q&A ============ -->
+    <section class="slide">
+      <div class="slide-inner">
+        <span class="eyebrow">Conclusion · Q&amp;A</span>
+        <h2 class="slide-title">Restoring the pre-1994 peer-to-peer internet for the agentic era</h2>
+        <p class="sub">DQuic (reachability) + DDns/E-Record (naming) + DHttp (role symmetry) = any endpoint becomes a nameable, verifiable, directly-reachable web endpoint — no cloud relay in the steady-state path.</p>
+        <div class="closing-qr">
+          <div class="qr">QR →<br>github.com/genmeta<br>docs.dhttp.net</div>
+          <div>
+            <p><strong>Repo:</strong> github.com/genmeta/dquic · <strong>Docs:</strong> docs.dhttp.net</p>
+            <p><strong>Contact:</strong> [presenter / company]</p>
+            <p><em>Open floor — NAT edge cases, identity revocation, DHT delegate discovery.</em></p>
+          </div>
+        </div>
+      </div>
+      <span class="slide-num">30 / 30</span>
+    </section>
+
+  </div><!-- /track -->
+</div><!-- /deck -->
+
+<!-- ===== Presenter notes (hidden on slides; press S to toggle) ===== -->
+<div class="notes-grab"><button id="notesBtn" title="Toggle presenter notes (S)">📝 Notes</button></div>
+<div id="notesPanel"></div>
+
+<!-- ===== Pagination dots ===== -->
+<div class="pagination" id="pagination"></div>
+<div class="hint">← → navigate · S toggles speaker notes</div>
+
+<script>
+  const track = document.getElementById('track');
+  const slides = Array.from(track.querySelectorAll('.slide'));
+  const total = slides.length;
+  let current = 0;
+
+  // Auto-number every slide counter from the DOM so labels can never drift
+  // out of sync with the real slide count (Title = 01 ... Conclusion = total).
+  slides.forEach((s, i) => {
+    const badge = s.querySelector('.slide-num');
+    if (badge) {
+      badge.textContent = String(i + 1).padStart(2, '0') + ' / ' + String(total).padStart(2, '0');
+    }
+  });
+
+  // Builder delimiters: each slide's body is its rendered content.
+  // Presenter notes are stored as hidden aside blocks *before* each section
+  // in a parallel source-of-truth array below.
+
+  // Notes keyed by slide index (0-based, 30 slides)
+  const NOTES = [
+/* 01 */ `"Good morning/afternoon. I'm here to talk about a protocol, not a product pitch. We're going to spend the next 25 minutes on why the HTTP client-server split is now a systems-level bottleneck for the agentic internet, and how we rebuilt the stack — from QUIC up through DNS to HTTP/3 itself — to fix it at the root, in the open. Everything I'll show you today is Apache-2.0, and the core transport is already on GitHub as DQuic."`,
+/* 02 */ `"Here's the whole talk in one slide. HTTP has a deep asymmetry: servers can be found, clients can't. We rebuilt three layers to remove that asymmetry — QUIC, DNS, and HTTP/3 itself — while staying wire-compatible with the ecosystem you already use. The output is simple: any device, including a robot on someone's home WiFi, gets a name, a certificate, and a URL that anyone authorized can hit directly."`,
+/* 03 */ `"This is not a new problem — it's an old problem that keeps getting re-solved badly. Private IPs broke global routability in 1994. VPNs patched it for teams, at the cost of yet more network silos. Now MCP and A2A are quietly re-encoding the same assumption — that a 'server' needs a cloud host with a fixed IP — right as we're trying to let agents control real robots. Each patch composes worse than the last. That's the inflection point: agentic AI is the workload that finally breaks the patch-on-patch model."`,
+/* 04 */ `"Our mission is narrow and protocol-shaped on purpose: make every endpoint reachable, nameable, and verifiable, without anyone's platform sitting in between. We are explicit about what we are *not* — we're not chasing anonymity, we're not trying to replace your corporate VPN, and we're not building a walled garden. The test for us is: could this have been RFC'd in 1994 if IPv4 space were infinite? If yes, we're on the right track."`,
+/* 05 */ `"At the socket level, almost every device can open a connection. Almost none can accept one — because accepting requires being globally routable, and private IP space plus NAT took that away from everyone except cloud hosts. So the industry's answer has been: route through the cloud host you don't have. That means every agent-to-device message today typically has a third party sitting in the data path — reading it, storing it, and charging you for the privilege."`,
+/* 06 */ `"Let me make this concrete with a story we've all lived: you build a demo, it works perfectly on your laptop, and the moment you send the link to a colleague, it's a 404. Your fix is a VPN — but the next colleague who wants to see it needs onboarding all over again, because VPNs don't talk to each other. Scale that same failure up to a home robot, and now the fallback isn't 'annoying,' it's 'my vacuum cleaner's motion data goes through a vendor's cloud before it comes back to my own phone.'"`,
+/* 07 */ `"Here's the systems view. IPv4 ran out, so we got NAT, so most devices lost the ability to accept connections, and HTTP — which just inherits whatever the transport layer gives it — inherited that asymmetry as the client/server split baked into the spec. Every fix since then has worked *around* that root cause instead of at it: VPNs add a private overlay, but you now have N overlays that don't talk to each other. MCP just assumes the old world where tools live on servers with fixed IPs. OAuth solves 'let me log into your platform,' not 'let two arbitrary devices mutually authenticate without a platform.' None of these patches restore what NAT took away: universal reachability."`,
+/* 08 */ `"Why is this the moment? Because agentic AI is the first mainstream workload where 'route everything through a cloud broker' isn't just inefficient — it's disqualifying. You cannot give a stranger's cloud service unsupervised write-access to a robot with hands and feet. And critically: whoever 'solves' this as a proprietary relay just becomes the next centralized chokepoint. That's precisely why this has to be an open protocol with a permissive license and a path to IETF standardization, the same way TCP/IP and DNS earned trust — by being implementable by anyone, not operated by one company."`,
+/* 09 */ `"So what is DHttp, concretely? It is HTTP/3, kept wire-compatible in spirit, with one restriction removed: the assumption that only a machine with a public IP and an open port can be 'the server.' We do this with three cooperating layers — a transport layer that natively solves NAT traversal, a naming layer that resolves a name to more than just an IP, and an application layer that lets HTTP/3 connections be used in both directions. Every endpoint gets a name like alice.smith~ — that's shorthand for a real, resolvable DNS name under .dhttp.net. [Naming ergonomics / UI micro-copy.] Notice we chose the tilde on purpose: it is fast to type, impossible to confuse with a port, and visually signals 'a peer, not a hostname.' In any DHttp-aware client the short form is all you need — the resolver expands it for you. And here's the local-first detail that keeps it snappy: if the name resolves on the same LAN, we short-circuit through mDNS as ._dhttp.local with zero added latency, and only fall back to the public .dhttp.net DDns record when a local hit is impossible. So a robot on your table responds as quickly as a loopback call, and only 'goes public' when the caller truly is remote."`,
+/* 10 */ `"Read this stack bottom to top, then left to right for the data path. DQuic gives you a connection to a name, even if that name lives behind three layers of NAT, by extending QUIC with native peer-to-peer signaling. DDns is how you resolve that name to something richer than an IP — a full reachability tuple, self-published and self-signed by the device. DHttp is the application layer riding on top, indistinguishable from HTTP/3 except that either side can initiate. And Pishoo is the thing you actually deploy — an nginx-like gateway that turns whatever box it's running on into a DHttp server. The right-hand side is the actual order of operations for one request: (1) DDns resolves the name — mDNS first on LAN, then the public E-Record; (2) DQuic picks a path across up to eight surfaces, preferring direct over relayed and IPv6 over IPv4; (3) the mTLS handshake verifies both identities once, at connect time; (4) the HTTP/3 request flows over server-initiated bidirectional streams, so either side can push or pull; and (5) Pishoo evaluates the deny-by-default ACL on identity, path, and method before anything is acted on. Each step is owned by exactly one layer — that separation is what makes the whole system auditable."`,
+/* 11 */ `"This is the transport layer, and it's the part I'd ask protocol engineers in the room to scrutinize closest. Instead of bolting STUN, Relay, and Signal on as separate services — the way WebRTC does — we fold them directly into the QUIC packet format, the same way QUIC itself folded in TLS 1.3. That means a single QUIC connection is a complete peer-to-peer system by itself. For NAT traversal specifically, we build on the IETF draft for QUIC NAT traversal, but we go further: we specify the missing piece — how a connection actually coordinates ADD_ADDRESS and PUNCH_ME_NOW frames using peer-contributed delegate nodes, not a dedicated STUN cluster. And because QUIC connections are identified by connection ID rather than a socket 4-tuple, we get real multipath: up to eight simultaneous paths per connection, prioritized direct-over-relayed, LAN-over-WAN, WiFi-over-cellular, IPv6-over-IPv4 — which is strictly better than Happy Eyeballs, because we don't throw away a slower path that ends up being the one you actually wanted to keep."`,
+/* 12 */ `"DNS's A and AAAA records only ever gave you an IP address — which is exactly why domain names have historically been a server-only privilege: only a host with a static public IP could usefully publish one. E-Record fixes that by publishing a full reachability tuple — IP and port, potentially for a delegate node too — under a new record type, RTYPE 266. Critically, nobody logs into a DNS console to set this: each endpoint detects its own current address and republishes its own signed record whenever it changes networks. That signature, from bit 8 in the flags byte, is what stops someone from poisoning the record — DDns records are self-asserted but not spoofable. And because the same name that lives under .dhttp.net also lives under ._dhttp.local, we get a two-stage resolution ladder you can actually reason about: on the same LAN, the mDNS record resolves first — zero added latency, zero public traffic — and only when the caller is remote do we descend to the public DDns E-Record, then hand off to DQuic for NAT traversal. Local-first at rest, globally reachable when needed. That's the shorthand ergonomics from slide nine made concrete: one name, resolution that picks the cheapest correct path."`,
+/* 13 */ `"Every identity system we use today is fragmented for a reason: an IP address is not verifiable, a password isn't callable, an OAuth token isn't signable. Unified Identity collapses this to one artifact: a name, a keypair, and a certificate, verified mutually — both sides — at the QUIC/TLS 1.3 handshake, the moment the connection opens. From there, access control is refreshingly simple: deny by default, allow yourself, allow local traffic, and everything else needs an explicit ACL entry keyed to a *name*, not an IP that might rotate tomorrow. We also borrow a nice trick from ethology for zero-touch bootstrapping — a device treats the very first identity that ever contacts it as its administrator, the way a duckling imprints on the first thing it sees. But be very clear about the safety condition, because this is where people rightly probe: [Imprinting security — MITM defense.] Imprinting is never accepted blind. It only happens over a bootstrap channel already proven to be the operator's — physical proximity (QR/NFC pairing), a same-LAN mDNS context via ._dhttp.local, or out-of-band verification of a public-key fingerprint. A random first-contact arriving over the open internet is never auto-promoted to administrator. Otherwise a coffee-shop MITM could 'imprint' first and walk away with the keys. So: privacy-friendly zero-touch onboarding, but only over a channel where the human and the device are already co-located or cryptographically bound out-of-band. Then, for delegated authority — 'this message is really from my assistant, acting for me' — we repurpose the Authorization header for third-party-issued, signed, time-bounded credentials, which is safe specifically *because* the transport layer has already independently verified who's actually holding the connection. I'll leave the printed slide up if you want to grill me on edge cases in Q&A."`,
+/* 14 */ `"I want to show, not just tell, how small the API surface is. This is the entire client side: load your own identity, .get() a URL on someone else's name, done — no STUN server address, no relay config, no port forwarding instructions. The server side is the same shape: construct an endpoint with your name, declare routes, done. If you already know nginx, Pishoo's config format will look almost identical — location blocks, proxy_pass, the works — because we didn't want to invent new operational knowledge where none was needed."`,
+/* 15 */ `"Let's be precise about trade-offs, because GOSIM is not the room for hand-waving comparisons. VPNs genuinely remove third parties from your data path — but every VPN is its own island; two people on different VPNs still can't reach each other without yet another hop. Cloud-relay patterns — think chat-bot bridges, or MCP tools assumed to sit behind a public-IP server — solve reachability but reintroduce exactly the third party VPNs avoided. DHttp is the only column here with no third party in the steady-state path *and* no new membership boundary: one global namespace, standard HTTP semantics, access control scoped to name-plus-path-plus-method instead of an IP tuple that can rotate under you. And where every technology helps devices without public IPs, only DHttp does it natively — VPNs only within their membership, cloud relays through the very third party we're trying to remove."`,
+/* 16 */ `"I'm going to be straightforward about this slide: what you see here is the benchmark structure we'd want to show — connection setup time, tail latency, multipath throughput gain, and gateway memory footprint — each compared against a relay-mediated baseline. I'm presenting our actual measured numbers [OR: since we're still finalizing our benchmark suite, I want to walk through the methodology instead, so you can hold us to it later]. This audience will ask for reproducible methodology before they trust a chart, so our benchmark harness itself will also ship in the repo."`,
+/* 17 */ `"Reliability in a mesh doesn't come from a bigger cluster — it comes from path diversity and redundancy at the delegate layer. If your WiFi path drops mid-connection, DQuic's multipath already has a cellular path warmed up and takes over without tearing down the QUIC connection ID. If the community-contributed delegate node you were using goes offline — because, unlike a cloud host, it's not guaranteed 7x24 — you can be registered with several delegates simultaneously via a DHT, and any endpoint's forward setting lets it dial its own donated capacity up or down. The reliability story isn't 'we run bigger servers than the last guy' — it's 'there is no one throat to choke.'"`,
+/* 18 */ `"These two cases are the same mechanism wearing different costumes. The robotics scenario motivated the whole protocol: a robot has hands and feet, so a compromised cloud dependency isn't a data leak, it's a physical safety problem. With DHttp the command path is two direct hops — owner to personal agent on /chat, agent to robot on /task/clean — each authorized by a single genmeta access rule scoped to one identity and one path, with no vendor cloud holding standing write-access to a physical device. The developer case is deliberately mundane, because mundane is where adoption happens: Alice shares a local demo with two colleagues using two ACL lines and two ordinary HTTPS URLs, versus a VPN install-and-join for each viewer — twice, with no interconnect between the two viewers. The shared punchline: deny-by-default, path-scoped grants, no third party in the data path, no OAuth redirect, no token copying from a dashboard."`,
+/* 19 */ `"If you're going to authorize commands to a physical robot, 'trust us, it's secure' is not an acceptable answer, so this slide states the threat model plainly. Identity is a keypair — possession is authority, which means there's no central account to steal and, importantly, no dashboard to leak tokens from. Access is deny-by-default: every grant is an explicit path-scoped genmeta access rule. Bootstrap is safe only because imprinting requires a channel that already proves ownership — physical proximity, same-LAN mDNS, or out-of-band fingerprint verification — and a random first contact over the open internet is never auto-promoted to administrator. Transport is QUIC plus TLS 1.3 mutual auth, so even a rogue delegate node sees ciphertext, not plaintext. And because a name is an address rather than a credential, even E-Record poisoning buys an attacker nothing once sessions pin the peer certificate. State the assumption honestly: the authorized owner is trusted; everyone else — ISPs, CGNAT middleboxes, internet randos — is the threat."`,
+/* 20 */ `"Let's make this real. [Run the five commands live.] Notice what I did *not* do: I didn't configure a router, I didn't provision a cloud instance, I didn't generate an OAuth app registration. Identity creation is local — a keypair and certificate on this machine, nothing calls home to register an account. And conference WiFi is famously hostile to live demos, so if UDP is blocked in this room, I've got a recorded run of the exact same five steps ready to go."`,
+/* 21 */ `"We chose Apache-2.0, including the patent grant, because a reachability-and-identity layer that only one company controls just reconstructs the centralization problem we started with — with a nicer brand. So the boundary is explicit: protocol, transport, naming, and the reference gateway are fully open, forever. Where we intend to build a business is managed convenience on top — I'll get to that in the sustainability section — never a paywall on interoperability. And because durability matters more than speed here, we intend to walk the DQuic NAT-traversal work and the E-Record spec through the IETF draft process, the same path QUIC itself took before it became a de facto web standard."`,
+/* 22 */ `"We are not asking the agent-framework ecosystem to rewrite anything. An MCP server's tool-calling logic doesn't change — what changes is that it can now run behind Pishoo on a laptop instead of requiring a public-IP host. An A2A-style orchestrator's notion of 'agent identity' maps directly onto Unified Identity, so inter-agent messages become ordinary DHttp requests instead of broker-relayed events. And because ROS2 already assumes a LAN-local pub/sub model, DHttp is a natural WAN bridge for it — same naming scheme, same identity model, just extended past the LAN boundary."`,
+/* 23 */ `"Developer experience was a design constraint, not an afterthought. If you know nslookup, you already know genmeta nslookup. If you know curl, you already know genmeta-curl. If you know nginx config syntax, you can read a Pishoo config file today without training. That's deliberate — we want the marginal cost of trying this out to be measured in minutes, not in a weekend spent learning a new operational model."`,
+/* 24 */ `"For a protocol this security-sensitive, governance can't be an afterthought slide — it has to be a real constraint. Wire-format and security-relevant changes go through a public RFC-style process with a review period, not a maintainer's direct push to main. We're structuring SIGs around the actual components — transport, naming, gateway, SDKs — so contributors can specialize instead of needing to understand the whole stack to send a useful PR. And as this grows, our intent is to move toward multi-maintainer or foundation-style custody of the specification itself, the same trust-building path other successful open infrastructure projects have taken."`,
+/* 25 */ `"We're sequencing this deliberately: protocol correctness and an honest, reproducible benchmark suite come before we chase breadth. First half of the year is DQuic stabilization and getting the E-Record spec into IETF's hands. Second half is where the SDK surface widens — Python and JS reaching general availability, a real MCP integration, a ROS2 bridge — and where we bring in an external security audit of the identity and ACL model, because 'trust us, it's secure' is not an acceptable answer for something meant to authorize commands to physical robots."`,
+/* 26 */ `"How does this get funded without becoming the centralized chokepoint we're trying to remove? Two ways, both explicitly optional. First, managed convenience: teams that don't want to rely on best-effort, community-donated delegate nodes can pay for guaranteed-uptime hosted ones, plus enterprise-grade certificate lifecycle management. Second, a namespace layer — reserving a short or high-value name can carry a fee, the way premium domain names always have, but that's scarcity pricing on naming, not a tollbooth on the protocol. And we close the loop with a DePIN-style incentive: if your node donates relay capacity to help others traverse NAT, that contribution accrues credit you can spend on our managed services."`,
+/* 27 */ `"[Presenter: introduce the actual team here.] I'd particularly highlight [name]'s background in QUIC internals and [name]'s work in applied cryptography, because those two areas are exactly where a protocol like this lives or dies — get the multipath scheduling wrong and it's slow; get the identity model wrong and it's unsafe. We've also had early contributions from [names/handles], and if anyone in this room has QUIC, DNS, or robotics-middleware experience, this is exactly the project where that expertise is scarce and valuable."`,
+/* 28 */ `"If you take one thing from this talk, I hope it's this: DHttp is a protocol, and you can verify the claim yourself on a laptop this evening. [3-step local testnet.] Step one: clone github.com/genmeta/dquic and boot two peers on a LAN (or LAN plus a phone hotspot). Step two: genmeta identity create on each — local keypair and certificate, no account, nothing calls home — and the peers find each other over ._dhttp.local via mDNS. Step three: move the client to a second network and hit https://name~/path with genmeta-curl or the SDK, and watch E-Record resolution hand off to DQuic's NAT traversal. That whole loop is the shortest honest reproduction of what we've described today. If a step breaks or a step feels awkward, file a friction-log issue — that is genuinely the highest-value contribution right now, because rough edges in onboarding won't show up in our own dogfooding. Beyond that, every repo — dquic transport core, DDns resolver, Pishoo gateway, and the Rust SDK with Python/JS bindings in the pipeline — has good-first-issue labels, and mDNS testing across uncommon router/OS combinations is wide open. We'd rather have you break it than have you praise it."`,
+/* 29 */ `"Two specific asks for partners in the room — and I want to be candid that these are standards collaborations, not commercial pitches. If you maintain an agent-orchestration or robotics-middleware project, we want to build the native integration with you, not for you — you know your users' constraints better than we do. And if you're in a university networking or security lab, we would welcome co-authorship or independent review on the IETF drafts we're preparing — an outside academic voice on the NAT-traversal and identity specs makes the eventual standard stronger and more credible than us grading our own homework. Everything is Apache-2.0 and IETF-bound; our interest is in the protocol getting adopted, not in a platform getting rented."`,
+/* 30 */ `"To close: before 1994, every device on the internet could, in principle, reach every other device — that property is what NAT and private IP space took away, and it's what we've spent this talk describing how to restore, one layer at a time: reachability at the transport layer, naming at the DNS layer, role symmetry at the HTTP layer. Everything is Apache-2.0, the repo is up, the docs are up, and this scan takes you straight to the quickstart — including the three-step testnet I mentioned, so you can verify the whole claim in an evening. I'd rather spend our remaining time on your hardest questions than my closing slide, so — NAT traversal edge cases, identity revocation, imprinting-safe bootstrap, delegate discovery under churn — let's go."`
+  ];
+
+  // Build pagination
+  const pagination = document.getElementById('pagination');
+  for (let i = 0; i < total; i++) {
+    const btn = document.createElement('button');
+    btn.dataset.index = i;
+    if (i === 0) btn.classList.add('active');
+    btn.addEventListener('click', () => goTo(i));
+    pagination.appendChild(btn);
+  }
+
+  function goTo(index) {
+    current = Math.max(0, Math.min(total - 1, index));
+    track.style.transform = 'translateY(-' + (current * 100) + 'vh)';
+    slides.forEach((s, i) => s.classList.toggle('active', i === current));
+    document.querySelectorAll('.pagination button').forEach((b, i) => {
+      b.classList.toggle('active', i === current);
+    });
+    if (notesOpen) setNotes();
+  }
+
+  // Presenter notes toggle (S key)
+  const notesPanel = document.getElementById('notesPanel');
+  const notesBtn = document.getElementById('notesBtn');
+  let notesOpen = false;
+
+  function setNotes() {
+    notesPanel.textContent = 'Slide ' + (current + 1) + '/' + total + ' — Speaker Notes\n\n' + (NOTES[current] || '');
+    notesPanel.scrollTop = 0;
+  }
+
+  function toggleNotes(force) {
+    notesOpen = (typeof force === 'boolean') ? force : !notesOpen;
+    notesPanel.classList.toggle('open', notesOpen);
+    if (notesOpen) setNotes();
+  }
+
+  notesBtn.addEventListener('click', () => toggleNotes());
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key.toLowerCase() === 's' && !e.metaKey && !e.ctrlKey) { e.preventDefault(); toggleNotes(); return; }
+    if (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+      e.preventDefault();
+      if (current < total - 1) goTo(current + 1);
+    }
+    if (e.key === 'ArrowUp' || e.key === 'ArrowLeft' || e.key === 'PageUp') {
+      e.preventDefault();
+      if (current > 0) goTo(current - 1);
+    }
+    if (e.key === 'Home') { e.preventDefault(); goTo(0); }
+    if (e.key === 'End') { e.preventDefault(); goTo(total - 1); }
+  });
+
+  // Touch swipe
+  let touchY = 0;
+  document.addEventListener('touchstart', (e) => { touchY = e.touches[0].clientY; });
+  document.addEventListener('touchend', (e) => {
+    const diff = touchY - e.changedTouches[0].clientY;
+    if (Math.abs(diff) > 50) {
+      if (diff > 0 && current < total - 1) goTo(current + 1);
+      else if (diff < 0 && current > 0) goTo(current - 1);
+    }
+  });
+
+  slides[0].classList.add('active');
+</script>
+
+</body>
+</html>
